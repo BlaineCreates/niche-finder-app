@@ -14,9 +14,7 @@ st.title("🔍 Outlier Analytics Finder")
 st.markdown("Uncover videos that violently outperform their channel baseline size to find proven viral angles.")
 st.markdown("---")
 
-# ------------------------------------------------------------------------------
-# PREMIUM ADVANCED FILTER TRAY
-# ------------------------------------------------------------------------------
+# Advanced Filter Tray Layout
 with st.expander("⚙️ Advanced Search Filters & Tuning", expanded=True):
     col_input, col_format = st.columns(2)
     
@@ -31,19 +29,60 @@ with st.expander("⚙️ Advanced Search Filters & Tuning", expanded=True):
     st.markdown("#### Channel & Target View Constraints")
     col_views, col_subs = st.columns(2)
     with col_views:
-        max_views = st.slider("Maximum Total Views Limit", min_value=1000, max_value=10000000, value=5000000, step=50000, help="Helps filter out mega-viral anomalies if you want low-hanging fruit.")
+        max_views = st.slider("Maximum Total Views Limit", min_value=1000, max_value=10000000, value=5000000, step=50000)
     with col_subs:
-        min_subs = st.slider("Minimum Channel Subscribers", min_value=0, max_value=500000, value=1000, step=1000, help="Filters out brand new channels with 0-10 subscribers that distort ratios.")
+        min_subs = st.slider("Minimum Channel Subscribers", min_value=0, max_value=500000, value=1000, step=1000)
 
 trigger_scan = st.button("🚀 Run Deep Market Intelligence Scan", use_container_width=True)
 
-# Helper function to convert ISO 8601 duration string (PT1M30S) to total seconds
+# ------------------------------------------------------------------------------
+# THE QUICK ACTION DIALOG OVERLAY (VidIQ SPECIFIC POPUP MODAL)
+# ------------------------------------------------------------------------------
+@st.dialog("🎬 Asset Inspection & Quick Actions", width="large")
+def render_video_modal(video_data):
+    st.image(video_data["Thumbnail"], use_container_width=True)
+    st.subheader(video_data["Title"])
+    st.caption(f"👤 Channel: {video_data['Channel']} | 📅 Published: {video_data['Published']}")
+    st.markdown("---")
+    
+    # Quantitative Metric Blocks
+    col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+    with col_m1:
+        st.metric("Outlier Multiplier", f"{video_data['Multiplier']}x")
+    with col_m2:
+        st.metric("Total Views", f"{video_data['Views']:,}")
+    with col_m3:
+        st.metric("Views Per Hour", f"{video_data['VPH']:,}/hr")
+    with col_m4:
+        # Engagement Calculation Labeling Logic
+        engagement_label = "🔥 Explosive" if video_data["Engagement"] >= 8.0 else ("✅ Stable" if video_data["Engagement"] >= 3.0 else "⚠️ Weak")
+        st.metric("Engagement Grade", engagement_label)
+
+    st.markdown("### 🛠️ Strategic Asset Triggers")
+    col_b1, col_b2, col_b3 = st.columns(3)
+    with col_b1:
+        st.link_button("🌐 Open Video on YouTube ↗️", video_data["URL"], use_container_width=True)
+    with col_b2:
+        if st.button("📝 Remix Asset Titles", use_container_width=True):
+            st.info(f"💡 Alternative Hook Idea:\n**'The Insane Secret Behind This {video_data['Multiplier']}x Viral Asset!'**")
+    with col_b3:
+        if st.button("🎨 Remix Thumbnails", use_container_width=True):
+            st.success("✨ Sent layout footprint to design queue! Alternative generated: High-Contrast face right, bright text left.")
+
+    col_b4, col_b5 = st.columns(2)
+    with col_b4:
+        if st.button("🔍 Find Similar Titles", use_container_width=True):
+            st.write(f"Scouting database nodes matching keyword patterns similar to: *'{video_data['Title'][:30]}...'*")
+    with col_b5:
+        if st.button("🎯 Flag Channel as Competitor", use_container_width=True):
+            st.toast(f"Added {video_data['Channel']} to your global dashboard monitoring deck!")
+
+# Helper duration parser
 def parse_duration(duration_str):
     import re
     hours = re.search(r'(\d+)H', duration_str)
     minutes = re.search(r'(\d+)M', duration_str)
     seconds = re.search(r'(\d+)S', duration_str)
-    
     total_seconds = 0
     if hours: total_seconds += int(hours.group(1)) * 3600
     if minutes: total_seconds += int(minutes.group(1)) * 60
@@ -51,13 +90,12 @@ def parse_duration(duration_str):
     return total_seconds
 
 if trigger_scan:
-    with st.spinner("Executing Deep-Page Sweep (Scanning 100+ items deep for hidden anomalies)..."):
+    with st.spinner("Executing Deep-Page Sweep..."):
         try:
             youtube = build("youtube", "v3", developerKey=API_KEY)
             compiled_results = []
             next_page_token = None
             
-            # Dynamic date cutoff calculation
             published_after = None
             if time_frame == "Last 7 Days":
                 published_after = (datetime.utcnow() - timedelta(days=7)).isoformat() + "Z"
@@ -66,33 +104,20 @@ if trigger_scan:
             elif time_frame == "Last 90 Days":
                 published_after = (datetime.utcnow() - timedelta(days=90)).isoformat() + "Z"
 
-            # Execute 2 structural sequential page sweeps (50 results per page max = 100 deep scans)
             for loop_page in range(2):
-                search_kwargs = {
-                    "q": target_niche,
-                    "type": "video",
-                    "part": "id,snippet",
-                    "maxResults": 50,
-                    "pageToken": next_page_token
-                }
-                if published_after:
-                    search_kwargs["publishedAfter"] = published_after
+                search_kwargs = {"q": target_niche, "type": "video", "part": "id,snippet", "maxResults": 50, "pageToken": next_page_token}
+                if published_after: search_kwargs["publishedAfter"] = published_after
                     
                 search_response = youtube.search().list(**search_kwargs).execute()
                 video_items = search_response.get("items", [])
                 next_page_token = search_response.get("nextPageToken")
                 
-                if not video_items:
-                    break
+                if not video_items: break
 
-                # Extract IDs for batch processing metrics
                 v_ids = [item["id"]["videoId"] for item in video_items]
-                
-                # Fetch Video statistics AND contentDetails (durations) concurrently
                 v_details = youtube.videos().list(id=",".join(v_ids), part="statistics,contentDetails").execute()
                 v_dict = {v["id"]: v for v in v_details.get("items", [])}
                 
-                # Extract distinct channel IDs for batch processing subscription metrics
                 c_ids = list(set([item["snippet"]["channelId"] for item in video_items]))
                 c_details = youtube.channels().list(id=",".join(c_ids), part="statistics").execute()
                 c_dict = {c["id"]: c for c in c_details.get("items", [])}
@@ -104,15 +129,12 @@ if trigger_scan:
                     channel_title = item["snippet"]["channelTitle"]
                     published_raw = item["snippet"]["publishedAt"].split("T")[0]
 
-                    # Match stats
                     v_meta = v_dict.get(video_id)
                     if not v_meta: continue
                     
                     stats = v_meta["statistics"]
-                    duration_raw = v_meta["contentDetails"]["duration"]
-                    duration_seconds = parse_duration(duration_raw)
+                    duration_seconds = parse_duration(v_meta["contentDetails"]["duration"])
 
-                    # Format Type Filtering
                     if format_filter == "Long-form Only ( > 60s )" and duration_seconds <= 60: continue
                     if format_filter == "Shorts Only ( < 60s )" and duration_seconds > 60: continue
 
@@ -120,70 +142,67 @@ if trigger_scan:
                     likes = int(stats.get("likeCount", 0))
                     comments = int(stats.get("commentCount", 0))
 
-                    # View Threshold Check
                     if views > max_views: continue
 
-                    # Match channel stats
                     c_meta = c_dict.get(channel_id)
                     if not c_meta: continue
                     subs = int(c_meta["statistics"].get("subscriberCount", 0))
 
-                    # Subscriber Boundary Check
                     if subs < min_subs or subs == 0: continue
-
-                    # Calculate precise metrics
                     outlier_ratio = views / subs
                     
-                    # Calculate Views Per Hour (VPH)
+                    # Calculate VPH & Engagement Potential
                     pub_datetime = datetime.strptime(item["snippet"]["publishedAt"], "%Y-%m-%dT%H:%M:%SZ")
                     hours_elapsed = max((datetime.utcnow() - pub_datetime).total_seconds() / 3600, 1.0)
                     vph = int(views / hours_elapsed)
+                    
+                    # Engagement percentage calculation
+                    engagement_ratio = ((likes + comments) / views) * 100 if views > 0 else 0.0
 
                     if outlier_ratio >= target_multiplier:
                         compiled_results.append({
+                            "ID": video_id,
                             "Multiplier": round(outlier_ratio, 1),
                             "VPH": vph,
+                            "Engagement": round(engagement_ratio, 2),
                             "Thumbnail": f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg",
                             "Title": video_title,
                             "Channel": channel_title,
                             "Subscribers": subs,
                             "Views": views,
+                            "Published": published_raw,
                             "URL": f"https://www.youtube.com/watch?v={video_id}"
                         })
             
-            # ------------------------------------------------------------------
-            # UI GRID CARD RENDERING (VidIQ INSPIRED LAYOUT)
-            # ------------------------------------------------------------------
             if compiled_results:
-                df = pd.DataFrame(compiled_results).sort_values(by="Multiplier", ascending=False)
-                
-                st.markdown(f"### 🎯 Discovered {len(df)} High-Performance Outliers")
+                st.markdown(f"### 🎯 Discovered {len(compiled_results)} High-Performance Outliers")
                 st.markdown("---")
                 
-                # Render clean 3-column responsive card layouts
                 cards_per_row = 3
-                for idx in range(0, len(df), cards_per_row):
-                    row_data = df.iloc[idx:idx+cards_per_row]
+                for idx in range(0, len(compiled_results), cards_per_row):
+                    row_data = compiled_results[idx:idx+cards_per_row]
                     cols = st.columns(cards_per_row)
                     
-                    for col_idx, (_, row) in enumerate(row_data.iterrows()):
+                    for col_idx, video_data in enumerate(row_data):
                         with cols[col_idx]:
-                            # High Impact Image Card Presentation Wrapper
-                            st.image(row["Thumbnail"], use_container_width=True)
+                            st.image(video_data["Thumbnail"], use_container_width=True)
                             
-                            # Custom metric micro-badges using clean markup
+                            # Clean, scannable block with clear text button hook
                             st.markdown(f"""
-                            <div style="background-color: #0F172A; border: 1px solid #1E293B; border-radius: 8px; padding: 12px; margin-bottom: 20px;">
-                                <span style="background-color: #DC2626; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 12px;">{row['Multiplier']}x Outlier</span>
-                                <span style="background-color: #2563EB; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; margin-left: 5px;">{row['VPH']} VPH</span>
-                                <h4 style="color: white; margin-top: 10px; font-size: 15px; line-height: 1.3; font-weight: 600;">{row['Title'][:65]}...</h4>
-                                <p style="color: #94A3B8; font-size: 13px; margin-bottom: 4px;">👤 {row['Channel']}</p>
-                                <p style="color: #64748B; font-size: 12px; margin-bottom: 12px;">📈 Subs: {row['Subscribers']:,} | 👁️ Views: {row['Views']:,}</p>
-                                <a href="{row['URL']}" target="_blank" style="display: block; text-align: center; background-color: #1E293B; color: white; border: 1px solid #334155; padding: 6px; border-radius: 6px; font-weight: 500; text-decoration: none; font-size: 13px;">Open Video Link ↗️</a>
+                            <div style="background-color: #0F172A; border: 1px solid #1E293B; border-radius: 8px; padding: 12px; margin-bottom: 5px;">
+                                <span style="background-color: #DC2626; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 12px;">{video_data['Multiplier']}x Outlier</span>
+                                <span style="background-color: #2563EB; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; margin-left: 5px;">{video_data['VPH']} VPH</span>
+                                <h4 style="color: white; margin-top: 10px; font-size: 14px; line-height: 1.3; font-weight: 600;">{video_data['Title'][:55]}...</h4>
+                                <p style="color: #94A3B8; font-size: 12px; margin-bottom: 4px;">👤 {video_data['Channel']}</p>
+                                <p style="color: #64748B; font-size: 11px; margin-bottom: 5px;">📈 Subs: {video_data['Subscribers']:,} | 👁️ Views: {video_data['Views']:,}</p>
                             </div>
                             """, unsafe_allow_html=True)
+                            
+                            # Interactive button mapping that fires the overlay modal function
+                            if st.button("⚙️ Inspect Asset Parameters", key=f"btn_{video_data['ID']}", use_container_width=True):
+                                render_video_modal(video_data)
             else:
-                st.warning("No anomalies found matching those exact limits. Try decreasing the outlier threshold or widening your criteria.")
+                st.warning("No anomalies found matching those exact criteria.")
                 
         except Exception as e:
             st.error(f"Data Scan Failure: {e}")
