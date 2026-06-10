@@ -1,15 +1,15 @@
-import streamlit as str_layout
-import pandas as data_engine
+import streamlit as st
+import pandas as pd
 from googleapiclient.discovery import build
 import os
 
 # ==============================================================================
 # # CREDENTIALS VAULT
 # ==============================================================================
-API_KEY = str_layout.secrets["GOOGLE_API_KEY"]
+API_KEY = st.secrets["GOOGLE_API_KEY"]
 
 # Premium Minimalist UI Design Configuration
-str_layout.set_page_config(
+st.set_page_config(
     page_title="Outlier Intelligence",
     page_icon="🚀",
     layout="wide",
@@ -17,7 +17,7 @@ str_layout.set_page_config(
 )
 
 # Custom High-End Styling Injection (Steve Jobs / Minimalist Dark Mode)
-str_layout.markdown("""
+st.markdown("""
     <style>
     .main { background-color: #0A0F1D; color: #FFFFFF; }
     h1 { font-weight: 800; tracking: -0.05em; color: #FFFFFF; }
@@ -43,29 +43,29 @@ str_layout.markdown("""
 """, unsafe_allow_html=True)
 
 # Initialize global authentication tracking
-if "authenticated" not in str_layout.session_state:
-    str_layout.session_state.authenticated = False
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
 
 # ------------------------------------------------------------------------------
 # THE VAULT DOOR: LOGIN SCREEN FRONTEND
 # ------------------------------------------------------------------------------
-if not str_layout.session_state.authenticated:
-    str_layout.title("Outlier Intelligence")
-    str_layout.write("Please authenticate to access the market database.")
+if not st.session_state.authenticated:
+    st.title("Outlier Intelligence")
+    st.write("Please authenticate to access the market database.")
     
-    with str_layout.form("login_form", clear_on_submit=False):
-        user_email = str_layout.text_input("Authorized Email Address")
-        user_password = str_layout.text_input("Access Password", type="password")
-        submit_auth = str_layout.form_submit_button("Unlock Dashboard")
+    with st.form("login_form", clear_on_submit=False):
+        user_email = st.text_input("Authorized Email Address")
+        user_password = st.text_input("Access Password", type="password")
+        submit_auth = st.form_submit_button("Unlock Dashboard")
         
         if submit_auth:
-            user_registry = str_layout.secrets.get("passwords", {})
+            user_registry = st.secrets.get("passwords", {})
             if user_email in user_registry and user_registry[user_email] == user_password:
-                str_layout.session_state.authenticated = True
-                str_layout.success("Access Granted! Loading system...")
-                str_layout.rerun()
+                st.session_state.authenticated = True
+                st.success("Access Granted! Loading system...")
+                st.rerun()
             else:
-                str_layout.error("Access Denied. Invalid credentials or unauthorized account.")
+                st.error("Access Denied. Invalid credentials or unauthorized account.")
     st_stop = True
 else:
     st_stop = False
@@ -74,21 +74,21 @@ else:
 # PREMIUM DASHBOARD APPLICATION MECHANICS
 # ------------------------------------------------------------------------------
 if not st_stop:
-    str_layout.title("Outlier Intelligence Dashboard")
-    str_layout.markdown("Identify high-performing content angles by uncovering videos that violently outperform their channel baseline size.")
-    str_layout.markdown("---")
+    st.title("Outlier Intelligence Dashboard")
+    st.markdown("Identify high-performing content angles by uncovering videos that violently outperform their channel baseline size.")
+    st.markdown("---")
 
-    column_left, column_right = str_layout.columns(2)
+    column_left, column_right = st.columns(2)
 
     with column_left:
-        target_niche = str_layout.text_input(
+        target_niche = st.text_input(
             "Target Niche / Search Query",
             value="faceless AI automation",
             help="Enter the market vertical or topic area you wish to scan."
         )
 
     with column_right:
-        target_multiplier = str_layout.slider(
+        target_multiplier = st.slider(
             "Minimum Outlier Performance Multiplier",
             min_value=2.0,
             max_value=20.0,
@@ -97,7 +97,7 @@ if not st_stop:
             help="Filters for videos that pulled X times more views than the channel has subscribers."
         )
 
-    trigger_scan = str_layout.button("Run Market Intelligence Scan")
+    trigger_scan = st.button("Run Market Intelligence Scan")
 
     def get_outlier_tier(ratio):
         if ratio >= 50.0: return f"⭐ CRITICAL HIT ({ratio:.1f}x)"
@@ -107,9 +107,9 @@ if not st_stop:
 
     if trigger_scan:
         if API_KEY == "YOUR_GOOGLE_API_KEY_HERE":
-            str_layout.error("Configuration Error: Please assign a valid Google API key inside your secrets configuration.")
+            st.error("Configuration Error: Please assign a valid Google API key inside your secrets configuration.")
         else:
-            with str_layout.spinner("Connecting to YouTube Data API v3 and processing baseline ratios..."):
+            with st.spinner("Connecting to YouTube Data API v3 and processing baseline ratios..."):
                 try:
                     youtube = build("youtube", "v3", developerKey=API_KEY)
 
@@ -161,7 +161,7 @@ if not st_stop:
                             })
 
                     if compiled_results:
-                        data_table = data_engine.DataFrame(compiled_results)
+                        data_table = pd.DataFrame(compiled_results)
                         data_table = data_table.sort_values(by="Multiplier", ascending=False)
                         
                         # Definitively enforce structural column order layout mapping
@@ -170,19 +170,19 @@ if not st_stop:
                         total_discoveries = len(data_table)
                         maximum_multiplier = data_table["Multiplier"].max()
 
-                        metric_col_1, metric_col_2 = str_layout.columns(2)
+                        metric_col_1, metric_col_2 = st.columns(2)
                         with metric_col_1:
-                            str_layout.metric("Outliers Uncovered", f"{total_discoveries} Videos")
+                            st.metric("Outliers Uncovered", f"{total_discoveries} Videos")
                         with metric_col_2:
-                            str_layout.metric("Peak Multiplier Performance", f"{maximum_multiplier}x")
+                            st.metric("Peak Multiplier Performance", f"{maximum_multiplier}x")
 
-                        str_layout.markdown("### Market Analysis Report")
+                        st.markdown("### Market Analysis Report")
 
-                        str_layout.dataframe(
+                        st.dataframe(
                             data_table,
                             column_config={
-                                "Thumbnail": str_layout.column_config.ImageColumn("Preview"),
-                                "URL": str_layout.column_config.LinkColumn("Watch Video Link")
+                                "Thumbnail": st.column_config.ImageColumn("Preview"),
+                                "URL": st.column_config.LinkColumn("Watch Video Link")
                             },
                             hide_index=True,
                             use_container_width=True
@@ -191,13 +191,13 @@ if not st_stop:
                         csv_bytes = data_table.to_csv(index=False, encoding='utf-8').encode('utf-8')
                         safe_filename = target_niche.replace(" ", "_").lower()
 
-                        str_layout.download_button(
+                        st.download_button(
                             label="📦 Export Intelligence Report to CSV Spreadsheet",
                             data=csv_bytes,
                             file_name=f"{safe_filename}_market_intelligence.csv",
                             mime="text/csv"
                         )
                     else:
-                        str_layout.warning("No anomalies detected matching this exact performance threshold. Try expanding search query parameters.")
+                        st.warning("No anomalies detected matching this exact performance threshold. Try expanding search query parameters.")
                 except Exception as system_error:
-                    str_layout.error(f"System Core Error: {system_error}")
+                    st.error(f"System Core Error: {system_error}")
