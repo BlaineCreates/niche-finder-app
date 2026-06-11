@@ -14,6 +14,12 @@ st.title("🔍 Outlier Analytics Finder")
 st.markdown("Uncover videos that violently outperform their channel baseline size to find proven viral angles.")
 st.markdown("---")
 
+# Initialize persistent memory storage keys for this page
+if "outlier_results" not in st.session_state:
+    st.session_state.outlier_results = None
+if "last_query" not in st.session_state:
+    st.session_state.last_query = ""
+
 # Advanced Filter Tray Layout
 with st.expander("⚙️ Advanced Search Filters & Tuning", expanded=True):
     col_input, col_format = st.columns(2)
@@ -35,9 +41,7 @@ with st.expander("⚙️ Advanced Search Filters & Tuning", expanded=True):
 
 trigger_scan = st.button("🚀 Run Deep Market Intelligence Scan", use_container_width=True)
 
-# ------------------------------------------------------------------------------
-# THE QUICK ACTION DIALOG OVERLAY (VidIQ SPECIFIC POPUP MODAL)
-# ------------------------------------------------------------------------------
+# THE QUICK ACTION DIALOG OVERLAY
 @st.dialog("🎬 Asset Inspection & Quick Actions", width="large")
 def render_video_modal(video_data):
     st.image(video_data["Thumbnail"], use_container_width=True)
@@ -45,7 +49,6 @@ def render_video_modal(video_data):
     st.caption(f"👤 Channel: {video_data['Channel']} | 📅 Published: {video_data['Published']}")
     st.markdown("---")
     
-    # Quantitative Metric Blocks
     col_m1, col_m2, col_m3, col_m4 = st.columns(4)
     with col_m1:
         st.metric("Outlier Multiplier", f"{video_data['Multiplier']}x")
@@ -54,7 +57,6 @@ def render_video_modal(video_data):
     with col_m3:
         st.metric("Views Per Hour", f"{video_data['VPH']:,}/hr")
     with col_m4:
-        # Engagement Calculation Labeling Logic
         engagement_label = "🔥 Explosive" if video_data["Engagement"] >= 8.0 else ("✅ Stable" if video_data["Engagement"] >= 3.0 else "⚠️ Weak")
         st.metric("Engagement Grade", engagement_label)
 
@@ -77,7 +79,6 @@ def render_video_modal(video_data):
         if st.button("🎯 Flag Channel as Competitor", use_container_width=True):
             st.toast(f"Added {video_data['Channel']} to your global dashboard monitoring deck!")
 
-# Helper duration parser
 def parse_duration(duration_str):
     import re
     hours = re.search(r'(\d+)H', duration_str)
@@ -89,6 +90,7 @@ def parse_duration(duration_str):
     if seconds: total_seconds += int(seconds.group(1))
     return total_seconds
 
+# Execute fresh API data pull if scan button pressed
 if trigger_scan:
     with st.spinner("Executing Deep-Page Sweep..."):
         try:
@@ -151,12 +153,10 @@ if trigger_scan:
                     if subs < min_subs or subs == 0: continue
                     outlier_ratio = views / subs
                     
-                    # Calculate VPH & Engagement Potential
                     pub_datetime = datetime.strptime(item["snippet"]["publishedAt"], "%Y-%m-%dT%H:%M:%SZ")
                     hours_elapsed = max((datetime.utcnow() - pub_datetime).total_seconds() / 3600, 1.0)
                     vph = int(views / hours_elapsed)
                     
-                    # Engagement percentage calculation
                     engagement_ratio = ((likes + comments) / views) * 100 if views > 0 else 0.0
 
                     if outlier_ratio >= target_multiplier:
@@ -174,35 +174,36 @@ if trigger_scan:
                             "URL": f"https://www.youtube.com/watch?v={video_id}"
                         })
             
-            if compiled_results:
-                st.markdown(f"### 🎯 Discovered {len(compiled_results)} High-Performance Outliers")
-                st.markdown("---")
-                
-                cards_per_row = 3
-                for idx in range(0, len(compiled_results), cards_per_row):
-                    row_data = compiled_results[idx:idx+cards_per_row]
-                    cols = st.columns(cards_per_row)
-                    
-                    for col_idx, video_data in enumerate(row_data):
-                        with cols[col_idx]:
-                            st.image(video_data["Thumbnail"], use_container_width=True)
-                            
-                            # Clean, scannable block with clear text button hook
-                            st.markdown(f"""
-                            <div style="background-color: #0F172A; border: 1px solid #1E293B; border-radius: 8px; padding: 12px; margin-bottom: 5px;">
-                                <span style="background-color: #DC2626; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 12px;">{video_data['Multiplier']}x Outlier</span>
-                                <span style="background-color: #2563EB; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; margin-left: 5px;">{video_data['VPH']} VPH</span>
-                                <h4 style="color: white; margin-top: 10px; font-size: 14px; line-height: 1.3; font-weight: 600;">{video_data['Title'][:55]}...</h4>
-                                <p style="color: #94A3B8; font-size: 12px; margin-bottom: 4px;">👤 {video_data['Channel']}</p>
-                                <p style="color: #64748B; font-size: 11px; margin-bottom: 5px;">📈 Subs: {video_data['Subscribers']:,} | 👁️ Views: {video_data['Views']:,}</p>
-                            </div>
-                            """, unsafe_allow_html=True)
-                            
-                            # Interactive button mapping that fires the overlay modal function
-                            if st.button("⚙️ Inspect Asset Parameters", key=f"btn_{video_data['ID']}", use_container_width=True):
-                                render_video_modal(video_data)
-            else:
-                st.warning("No anomalies found matching those exact criteria.")
-                
+            # Save results permanently into session memory
+            st.session_state.outlier_results = compiled_results
+            st.session_state.last_query = target_niche
+            
         except Exception as e:
             st.error(f"Data Scan Failure: {e}")
+
+# Render out whatever data is locked inside the long-term memory box
+if st.session_state.outlier_results is not None:
+    st.markdown(f"### 🎯 Discovered {len(st.session_state.outlier_results)} High-Performance Outliers for *'{st.session_state.last_query}'*")
+    st.markdown("---")
+    
+    cards_per_row = 3
+    for idx in range(0, len(st.session_state.outlier_results), cards_per_row):
+        row_data = st.session_state.outlier_results[idx:idx+cards_per_row]
+        cols = st.columns(cards_per_row)
+        
+        for col_idx, video_data in enumerate(row_data):
+            with cols[col_idx]:
+                st.image(video_data["Thumbnail"], use_container_width=True)
+                
+                st.markdown(f"""
+                <div style="background-color: #0F172A; border: 1px solid #1E293B; border-radius: 8px; padding: 12px; margin-bottom: 5px;">
+                    <span style="background-color: #DC2626; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 12px;">{video_data['Multiplier']}x Outlier</span>
+                    <span style="background-color: #2563EB; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; margin-left: 5px;">{video_data['VPH']} VPH</span>
+                    <h4 style="color: white; margin-top: 10px; font-size: 14px; line-height: 1.3; font-weight: 600;">{video_data['Title'][:55]}...</h4>
+                    <p style="color: #94A3B8; font-size: 12px; margin-bottom: 4px;">👤 {video_data['Channel']}</p>
+                    <p style="color: #64748B; font-size: 11px; margin-bottom: 5px;">📈 Subs: {video_data['Subscribers']:,} | 👁️ Views: {video_data['Views']:,}</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                if st.button("⚙️ Inspect Asset Parameters", key=f"btn_{video_data['ID']}_{idx}", use_container_width=True):
+                    render_video_modal(video_data)
