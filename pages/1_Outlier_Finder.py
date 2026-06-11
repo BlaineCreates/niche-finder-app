@@ -41,17 +41,28 @@ with st.expander("⚙️ Advanced Search Filters & Tuning", expanded=True):
 
 trigger_scan = st.button("🚀 Run Deep Market Intelligence Scan", use_container_width=True)
 
-# THE QUICK ACTION DIALOG OVERLAY
+# ------------------------------------------------------------------------------
+# HEIGHT-OPTIMIZED COMPACT DIALOG OVERLAY
+# ------------------------------------------------------------------------------
 @st.dialog("🎬 Asset Inspection & Quick Actions", width="large")
 def render_video_modal(video_data):
-    st.image(video_data["Thumbnail"], use_container_width=True)
-    st.subheader(video_data["Title"])
-    st.caption(f"👤 Channel: {video_data['Channel']} | 📅 Published: {video_data['Published']}")
+    # Split layout horizontally to prevent vertical blowout
+    col_thumb, col_meta = st.columns([5, 4])
+    
+    with col_thumb:
+        # Pinned thumbnail presentation container
+        st.image(video_data["Thumbnail"], use_container_width=True)
+        
+    with col_meta:
+        st.subheader(video_data["Title"])
+        st.caption(f"👤 Channel: {video_data['Channel']}\n\n📅 Published: {video_data['Published']}")
+    
     st.markdown("---")
     
+    # Quantitative Metric Blocks
     col_m1, col_m2, col_m3, col_m4 = st.columns(4)
     with col_m1:
-        st.metric("Outlier Multiplier", f"{video_data['Multiplier']}x")
+        st.metric("Multiplier", f"{video_data['Multiplier']}x")
     with col_m2:
         st.metric("Total Views", f"{video_data['Views']:,}")
     with col_m3:
@@ -90,7 +101,6 @@ def parse_duration(duration_str):
     if seconds: total_seconds += int(seconds.group(1))
     return total_seconds
 
-# Execute fresh API data pull if scan button pressed
 if trigger_scan:
     with st.spinner("Executing Deep-Page Sweep..."):
         try:
@@ -174,14 +184,13 @@ if trigger_scan:
                             "URL": f"https://www.youtube.com/watch?v={video_id}"
                         })
             
-            # Save results permanently into session memory
             st.session_state.outlier_results = compiled_results
             st.session_state.last_query = target_niche
             
         except Exception as e:
             st.error(f"Data Scan Failure: {e}")
 
-# Render out whatever data is locked inside the long-term memory box
+# Render active results from session memory
 if st.session_state.outlier_results is not None:
     st.markdown(f"### 🎯 Discovered {len(st.session_state.outlier_results)} High-Performance Outliers for *'{st.session_state.last_query}'*")
     st.markdown("---")
