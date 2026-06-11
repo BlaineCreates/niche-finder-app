@@ -60,13 +60,14 @@ if not st.session_state.authenticated:
                 st.error("Access Denied. Invalid credentials or unauthorized account.")
 
 # ------------------------------------------------------------------------------
-# MULTI-PAGE PLATFORM NAVIGATION HUB
+# MULTI-PAGE PLATFORM NAVIGATION HUB (ALL 3 PAGES REGISTERED)
 # ------------------------------------------------------------------------------
 else:
-    # Setup your native sidebar directory mapping with both pages included
+    # Setup your native sidebar directory mapping
     outlier_page = st.Page("pages/1_Outlier_Finder.py", title="Outlier Analytics Finder", icon="🔍")
     keyword_page = st.Page("pages/2_Keyword_Research.py", title="Keyword Volume Suite", icon="📊")
+    vault_page = st.Page("pages/3_Thumbnail_Vault.py", title="Thumbnail Inspiration Vault", icon="🖼️")
     
     # Run the modern sidebar multi-page engine
-    navigation_hub = st.navigation([outlier_page, keyword_page])
+    navigation_hub = st.navigation([outlier_page, keyword_page, vault_page])
     navigation_hub.run()
