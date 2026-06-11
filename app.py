@@ -8,6 +8,16 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Hide Streamlit Default Branding
+hide_default_format = """
+       <style>
+       #MainMenu {visibility: hidden; }
+       footer {visibility: hidden;}
+       header {visibility: hidden;}
+       </style>
+       """
+st.markdown(hide_default_format, unsafe_allow_html=True)
+
 # Initialize global authentication tracking
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
