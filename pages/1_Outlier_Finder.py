@@ -1,5 +1,7 @@
 import streamlit as st
 import pandas as pd
+import requests
+import json
 from googleapiclient.discovery import build
 from datetime import datetime, timedelta
 
@@ -9,6 +11,7 @@ if not st.session_state.get("authenticated", False):
     st.stop()
 
 API_KEY = st.secrets["GOOGLE_API_KEY"]
+GEMINI_KEY = st.secrets["GEMINI_API_KEY"]
 
 st.title("🔍 Outlier Analytics Finder")
 st.markdown("Uncover videos that violently outperform their channel baseline size to find proven viral angles.")
@@ -42,24 +45,45 @@ with st.expander("⚙️ Advanced Search Filters & Tuning", expanded=True):
 trigger_scan = st.button("🚀 Run Deep Market Intelligence Scan", use_container_width=True)
 
 # ------------------------------------------------------------------------------
-# HEIGHT-OPTIMIZED COMPACT DIALOG OVERLAY
+# THE GEMINI LIVE AI BRAINSTORMING CONNECTOR
 # ------------------------------------------------------------------------------
-@st.dialog("🎬 Asset Inspection & Quick Actions", width="large")
-def render_video_modal(video_data):
-    # Split layout horizontally to prevent vertical blowout
-    col_thumb, col_meta = st.columns([5, 4])
+def generate_ai_remix(mode, video_title, multiplier):
+    # Construct a highly strategic, professional prompt based on the user click choice
+    if mode == "title":
+        prompt = f"You are a master YouTube growth strategist. This video title went viral with an insane {multiplier}x multiplier compared to the channel's normal size: '{video_title}'. Brainstorm 5 alternative high-CTR, click-worthy titles/hooks that leverage the exact same psychological curiosity angle but use different high-converting phrasing. Keep them punchy and ready to copy-paste. Do not include introductory text, just jump straight to the numbered list."
+    else:
+        prompt = f"You are a master YouTube thumbnail designer and visual psychology expert. A video titled '{video_title}' went viral with a {multiplier}x outlier score. Describe 3 highly specific visual concept ideas for a brand new thumbnail layout that would beat the current one. Specify color contrast splits, placement of elements, text overlay hooks (maximum 3 words), and emotional expressions to capture. Keep it concise, practical, and highly scannable. Do not include introductory text, just jump straight to the numbered list."
+
+    # Execute a clean REST request to Google's live Gemini 1.5 Flash API endpoint
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_KEY}"
+    headers = {'Content-Type': 'application/json'}
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
     
+    try:
+        response = requests.post(url, headers=headers, json=payload, timeout=10)
+        if response.status_code == 200:
+            res_json = response.json()
+            ai_text = res_json['candidates'][0]['content']['parts'][0]['text']
+            return ai_text
+        else:
+            return f"AI Connection Interrupted (Status {response.status_code}). Ensure your API key is fully activated."
+    except Exception as e:
+        return f"AI Engine Timed Out: {e}"
+
+# ------------------------------------------------------------------------------
+# RE-ENGINEERED INSPECTION POPUP MODAL WITH LIVE GENERATION LAYERS
+# ------------------------------------------------------------------------------
+@st.dialog("🎬 Asset Inspection & Live AI Brainstorming", width="large")
+def render_video_modal(video_data):
+    col_thumb, col_meta = st.columns([5, 4])
     with col_thumb:
-        # Pinned thumbnail presentation container
         st.image(video_data["Thumbnail"], use_container_width=True)
-        
     with col_meta:
         st.subheader(video_data["Title"])
         st.caption(f"👤 Channel: {video_data['Channel']}\n\n📅 Published: {video_data['Published']}")
     
     st.markdown("---")
     
-    # Quantitative Metric Blocks
     col_m1, col_m2, col_m3, col_m4 = st.columns(4)
     with col_m1:
         st.metric("Multiplier", f"{video_data['Multiplier']}x")
@@ -76,19 +100,36 @@ def render_video_modal(video_data):
     with col_b1:
         st.link_button("🌐 Open Video on YouTube ↗️", video_data["URL"], use_container_width=True)
     with col_b2:
-        if st.button("📝 Remix Asset Titles", use_container_width=True):
-            st.info(f"💡 Alternative Hook Idea:\n**'The Insane Secret Behind This {video_data['Multiplier']}x Viral Asset!'**")
+        remix_titles = st.button("📝 Live Remix Titles (AI)", use_container_width=True)
     with col_b3:
-        if st.button("🎨 Remix Thumbnails", use_container_width=True):
-            st.success("✨ Sent layout footprint to design queue! Alternative generated: High-Contrast face right, bright text left.")
+        remix_thumb = st.button("🎨 Live Remix Thumbnail (AI)", use_container_width=True)
 
+    # Secondary action bar lines
     col_b4, col_b5 = st.columns(2)
     with col_b4:
-        if st.button("🔍 Find Similar Titles", use_container_width=True):
-            st.write(f"Scouting database nodes matching keyword patterns similar to: *'{video_data['Title'][:30]}...'*")
+        find_similar = st.button("🔍 Find Similar Titles", use_container_width=True)
     with col_b5:
-        if st.button("🎯 Flag Channel as Competitor", use_container_width=True):
-            st.toast(f"Added {video_data['Channel']} to your global dashboard monitoring deck!")
+        flag_comp = st.button("🎯 Flag Channel as Competitor", use_container_width=True)
+
+    # Live UI output injection areas based on active clicks inside the open popup container
+    if remix_titles:
+        st.markdown("---")
+        st.markdown("#### 🧠 AI Title Remix Generation Matrix")
+        with st.spinner("Consulting growth vectors (Gemini AI live generation)..."):
+            output = generate_ai_remix("title", video_data["Title"], video_data["Multiplier"])
+            st.info(output)
+
+    if remix_thumb:
+        st.markdown("---")
+        st.markdown("#### 🎨 AI Visual Composition Layout Model")
+        with st.spinner("Drafting design configurations (Gemini AI live generation)..."):
+            output = generate_ai_remix("thumbnail", video_data["Title"], video_data["Multiplier"])
+            st.success(output)
+
+    if find_similar:
+        st.toast(f"Scanning target node vectors for phrasing matching: {video_data['Title'][:20]}...")
+    if flag_comp:
+        st.toast(f"Successfully pinned {video_data['Channel']} into your monitoring array!")
 
 def parse_duration(duration_str):
     import re
