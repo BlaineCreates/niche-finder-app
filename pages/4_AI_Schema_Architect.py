@@ -5,15 +5,17 @@ from datetime import datetime
 # Page Layout configuration
 st.set_page_config(page_title="AEO Schema Architect", page_icon="🤖", layout="wide")
 
-# Hide Default Streamlit Branding
-hide_style = """
-<style>
-#MainMenu {visibility: hidden; }
-footer {visibility: hidden;}
-header {visibility: hidden;}
-</style>
-"""
-st.markdown(hide_style, unsafe_allow_html=True)
+# Hide Streamlit Default Branding safely while preserving sidebar accessibility
+hide_default_format = """
+       <style>
+       #MainMenu {visibility: hidden;}
+       footer {visibility: hidden;}
+       header {visibility: hidden;}
+       div[data-testid="collapsedControl"] {display: block !important; visibility: visible !important;}
+       </style>
+       """
+st.markdown(hide_default_format, unsafe_allow_html=True)
+
 
 st.title("🤖 AEO Schema & Extractability Architect")
 st.markdown("Transform conversational video assets into structured engine-readable markup to maximize AI Search citation velocity.")
