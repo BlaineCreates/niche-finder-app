@@ -8,16 +8,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Hide Streamlit Default Branding
-hide_default_format = """
-       <style>
-       #MainMenu {visibility: hidden;}
-       footer {visibility: hidden;}
-       header {visibility: hidden;}
-       </style>
-       """
-st.markdown(hide_default_format, unsafe_allow_html=True)
-
 # Initialize global authentication tracking
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -77,7 +67,8 @@ else:
     outlier_page = st.Page("pages/1_Outlier_Finder.py", title="Outlier Analytics Finder", icon="🔍")
     keyword_page = st.Page("pages/2_Keyword_Research.py", title="Keyword Volume Suite", icon="📊")
     vault_page = st.Page("pages/3_Thumbnail_Vault.py", title="Thumbnail Inspiration Vault", icon="🖼️")
+    schema_page = st.Page("pages/4_AI_Schema_Architect.py", title="AEO Schema Architect", icon="🤖")
     
     # Run the modern sidebar multi-page engine
-    navigation_hub = st.navigation([outlier_page, keyword_page, vault_page])
+    navigation_hub = st.navigation([outlier_page, keyword_page, vault_page, schema_page])
     navigation_hub.run()
