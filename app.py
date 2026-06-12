@@ -11,7 +11,7 @@ st.set_page_config(
 # Hide Streamlit Default Branding
 hide_default_format = """
        <style>
-       #MainMenu {visibility: hidden; }
+       #MainMenu {visibility: hidden;}
        footer {visibility: hidden;}
        header {visibility: hidden;}
        </style>
