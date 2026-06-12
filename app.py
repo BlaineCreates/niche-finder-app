@@ -68,7 +68,8 @@ else:
     keyword_page = st.Page("pages/2_Keyword_Research.py", title="Keyword Volume Suite", icon="📊")
     vault_page = st.Page("pages/3_Thumbnail_Vault.py", title="Thumbnail Inspiration Vault", icon="🖼️")
     schema_page = st.Page("pages/4_AI_Schema_Architect.py", title="AEO Schema Architect", icon="🤖")
+    simulator_page = st.Page("pages/5_Retention_Simulator.py", title="Retention Simulator", icon="⏱️")
     
     # Run the modern sidebar multi-page engine
-    navigation_hub = st.navigation([outlier_page, keyword_page, vault_page, schema_page])
+    navigation_hub = st.navigation([outlier_page, keyword_page, vault_page, schema_page, simulator_page])
     navigation_hub.run()
